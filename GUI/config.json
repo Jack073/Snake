@@ -1,0 +1,30 @@
+{
+    "server": "http://localhost:8081",
+    "HeadColour": [
+        0,
+        0,
+        255
+    ],
+    "BodyColour": [
+        50,
+        130,
+        170
+    ],
+    "AppleColour": [
+        255 ,
+        0,
+        0
+    ],
+    "BackgroundColour": [
+        60,
+        170,
+        50
+    ],
+    "BlockHeight": 50,
+    "BlockWidth": 50,
+    "BorderColour": [
+        255,
+        255,
+        255
+    ]
+}
