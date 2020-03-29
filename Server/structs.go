@@ -356,34 +356,20 @@ func (a *Apple) GenApple() ([2]int, error) {
 				break
 			}
 
-			/* if snakePositions[pos][0] > coord[0] {
-				snakePositions = snakePositions[pos+1:]
-			} else if snakePositions[pos][0] < coord[0] {
+			if snakePositions[pos][0] > coord[0] {
 				snakePositions = snakePositions[:pos]
+			} else if snakePositions[pos][0] < coord[0] {
+				snakePositions = snakePositions[pos+1:]
 			} else if snakePositions[pos][0] == coord[0] {
 				if snakePositions[pos][1] == coord[1] {
 					hit = true
 					break
 				} else if snakePositions[pos][1] < coord[1] {
-					snakePositions = snakePositions[:pos]
-				} else {
 					snakePositions = snakePositions[pos+1:]
+				} else {
+					snakePositions = snakePositions[:pos]
 				}
-			}*/
-			if snakePositions[pos][0] > coord[0] {
-                snakePositions = snakePositions[:pos]
-            } else if snakePositions[pos][0] < coord[0] {
-            	snakePositions = snakePositions[pos+1:]
-            } else if snakePositions[pos][0] == coord[0] {
-            	if snakePositions[pos][1] == coord[1] {
-            		hit = true
-            		break
-            	} else if snakePositions[pos][1] < coord[1] {
-            		snakePositions = snakePositions[pos+1:]
-            	} else {
-            		snakePositions = snakePositions[:pos]
-            	}
-            }
+			}
 		}
 
 		if totalRandom >= 30 && hit {
