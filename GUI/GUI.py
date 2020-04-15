@@ -1,9 +1,22 @@
 from sys import exit
-from urllib.request import urlopen, URLError
+from urllib.request import urlopen
+from urllib.error import URLError
 from json import loads, dumps, load
 import tkinter as tk
 from time import time, sleep
 from base64 import b64decode
+
+
+def check_closing(f):
+    def wrapper(self, *args, **kwargs):
+        """
+        Functions will only attempt to run if the program
+        hasn't started to close hopefully resulting in a clean exit
+        with no errors in console
+        """
+        if not self.closing:
+            return f(self, *args, **kwargs)
+    return wrapper
 
 
 class GUI(tk.Tk):
@@ -19,7 +32,7 @@ class GUI(tk.Tk):
     }
     # Stop the snake from going backwards on itself
 
-    def __init__(self, conf):
+    def __init__(self, conf, delay=False):
         super().__init__()
         # Init the tkinter inherited class
 
@@ -37,26 +50,64 @@ class GUI(tk.Tk):
 
         self.lock = False
 
+        self.closing = False
+
+        self.tk_str_var_length = tk.StringVar()
+
+        self.tk_str_var_length.set("Length: 0")
+
+        self.tk_str_var_eaten = tk.StringVar()
+
+        self.tk_str_var_eaten.set("Eaten: 0")
+
         self.label = tk.Label(
             self,
             image=self.init_grid_img(),
             anchor="center"
         )
 
-        # self.label.bind("<Key>", self.key_handler)
+        self.length_label = tk.Label(
+            self,
+            textvariable=self.tk_str_var_length,
+            anchor="center"
+        )
+
+        self.eaten_label = tk.Label(
+            self,
+            textvariable=self.tk_str_var_eaten,
+            anchor="center"
+        )
+
+        self.length_label.pack()
+
+        self.eaten_label.pack()
+
+        self.restart_button = tk.Button(
+            self,
+            command=self.on_restart_press,
+            text="Restart"
+        )
+
+        self.restart_button.pack()
+
         self.bind_all("<Key>", self.key_handler)
         # bind_all over bind as it fixes issues on having to 
         # focus on a specific widget
         self.label.pack()
 
+        self.protocol("WM_DELETE_WINDOW", self.close_window)
+        # When user closes window
+
         self.create_game()
 
-        sleep(3)
+        if delay:
+            sleep(3)
 
         self.clock(self.clock_event)
 
         # Start the game clock
 
+    @check_closing
     def key_handler(self, evt):
         evt.widget.focus_set()
 
@@ -79,7 +130,8 @@ class GUI(tk.Tk):
             self.direction = "r"
         elif evt.keycode == 40:
             self.direction = "d"
-        
+
+    @check_closing
     def create_game(self):
         # Generate token and create game on server
         try:
@@ -106,6 +158,7 @@ class GUI(tk.Tk):
         except URLError:
             exit("Unable to connect to server")
 
+    @check_closing
     def clock_event(self):
         try:
             res = loads(
@@ -135,6 +188,7 @@ class GUI(tk.Tk):
         except URLError:
             exit("Unable to connect to server")
 
+    @check_closing
     def clock(self, func):
         start_time = time() * 1000
         interval_time = 0.5 * 1000
@@ -143,11 +197,14 @@ class GUI(tk.Tk):
         # scenarios
 
         while True:
+            if self.closing:
+                return
+
             self.update()
             # Update tkinter class to keep listening for events
             if self.lock:
                 break
-                # Ignore further inputs
+            # Ignore further inputs
                 
             query_time = start_time + (
                     interval_time - ((time() * 1000) - start_time)
@@ -164,6 +221,7 @@ class GUI(tk.Tk):
         self.mainloop()
         # Keep window responsive
 
+    @check_closing
     def init_grid_img(self):
         # Creates an image using the server /image method
         default_board = {
@@ -211,7 +269,7 @@ class GUI(tk.Tk):
             # Makes request, returned in JSON format and parsed
 
             if "Error" in res.keys():
-                exit(res.keys.get("Error"))
+                exit(res.keys().get("Error"))
 
             self.image = tk.PhotoImage(data=b64decode(res["Image"]))
 
@@ -220,7 +278,11 @@ class GUI(tk.Tk):
         except URLError:
             exit("Unable to connect to server")
 
+    @check_closing
     def update_board(self, board):
+        self.tk_str_var_eaten.set("Eaten: " + str(board["Eaten"]))
+        self.tk_str_var_length.set("Length: " + str(board["Length"]))
+
         try:
             # Attempt to create an image for the updated board
             board = {
@@ -273,7 +335,8 @@ class GUI(tk.Tk):
 
         self.image = tk.PhotoImage(data=b64decode(res["Image"]))
         self.label.configure(image=self.image)
-
+        
+    @check_closing
     def emit_won(self, res):
         self.lock = True
         # Stop any further requests to server
@@ -284,7 +347,8 @@ class GUI(tk.Tk):
             height=20
         )
         w.pack()
-        
+
+    @check_closing
     def emit_dead(self, res):
         self.lock = True
         # Stop any further requests to server
@@ -295,10 +359,26 @@ class GUI(tk.Tk):
             height=20
         )
         d.pack()
-        
+
+    @check_closing
+    def on_restart_press(self):
+        self.destroy()
+
+        cls, conf = self.__class__, self.conf
+
+        del self
+
+        cls(conf=conf, delay=False)
+
+    @check_closing
+    def close_window(self):
+        self.closing = True
+        self.destroy()
+        del self
+
 
 if __name__ == "__main__":
     with open("config.json") as c:
         con = load(c)
         # Load from config.json into dict
-    app = GUI(con)
+    app = GUI(con, delay=True)
