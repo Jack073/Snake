@@ -6,10 +6,10 @@ import (
 	"net/http"
 )
 
-const VERSION = 1.0
+const version = 1.1
 
 var (
-	Boards = make(RunningGames, 0)
+	boards = RunningGames{boards: make([]*Board, 0, 5)}
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 
 	http.HandleFunc("/image", ImageCreate)
 
-	fmt.Println("Snake Server Version ", VERSION, " Now Online, Listening For Requests At Port 8081")
+	fmt.Println("Snake Server Version ", version, " Now Online, Listening For Requests At Port 8081")
 
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }

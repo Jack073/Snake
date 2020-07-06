@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"encoding/base64"
 	"image"
-	colour "image/color" // Spelt correctly now
+	colour "image/color"
 	"image/png"
 	_ "image/png"
 	"strings"
 )
 
 const (
-	BORDER_WIDTH = 1
+	// The number of pixels wide for the border between blocks
+	borderWidth = 1
 )
 
-func GenImage(req ImageReq) (string, error) {
+// GenImage returns the base64 encoding of the image if success, error if there was an error
+func GenImage(req imageReq) (string, error) {
 	img := image.NewRGBA(
 		image.Rectangle{
 			image.Point{
@@ -22,60 +24,62 @@ func GenImage(req ImageReq) (string, error) {
 				0,
 			},
 			image.Point{
-				req.width*req.BlockWidth + req.width*BORDER_WIDTH,
-				len(req.BoardPositions)*req.BlockHeight + len(req.BoardPositions)*BORDER_WIDTH,
+				req.Width*req.BlockWidth + req.Width*borderWidth,
+				len(req.BoardPositions)*req.BlockHeight + len(req.BoardPositions)*borderWidth,
 			},
 		},
 	)
 
-	border_colour_rgba := colour.RGBA{uint8(req.BorderColour[0]), uint8(req.BorderColour[1]), uint8(req.BorderColour[2]), 255}
+	borderColourRGBA := colour.RGBA{uint8(req.BorderColour[0]), uint8(req.BorderColour[1]), uint8(req.BorderColour[2]), 255}
 
-	for row_num, row := range req.BoardPositions {
-		for cell_num, cell := range row {
+	for rowNum, row := range req.BoardPositions {
+		for cellNum, cell := range row {
 			cell = strings.ToLower(cell)
 
-			var rgb_colour [3]int
+			var RGBColour [3]int
 
-			if cell == " " {
+			switch cell {
+			case " ":
 				// Blank Space
-				rgb_colour = req.BackGroundColour
-			} else if cell == "a" {
+				RGBColour = req.BackGroundColour
+			case "a":
 				// Apple space
-				rgb_colour = req.AppleColour
-			} else if cell == "h" {
-				// Head of snake
-				rgb_colour = req.HeadColour
-			} else if cell == "s" {
+				RGBColour = req.AppleColour
+			case "h":
+				// Head of the snake
+				RGBColour = req.HeadColour
+			case "s":
 				// Body of snake
-				rgb_colour = req.BodyColour
-			} else {
+				RGBColour = req.BodyColour
+			default:
 				// Unknown, use background colour
-				rgb_colour = req.BackGroundColour
+				RGBColour = req.BackGroundColour
 			}
 
-			rgba_colour := colour.RGBA{uint8(rgb_colour[0]), uint8(rgb_colour[1]), uint8(rgb_colour[2]), 255}
+			RGBAColour := colour.RGBA{uint8(RGBColour[0]), uint8(RGBColour[1]), uint8(RGBColour[2]), 255}
 
-			min_x := (cell_num * req.BlockWidth) + (cell_num * BORDER_WIDTH)
+			minX := (cellNum * req.BlockWidth) + (cellNum * borderWidth)
 
-			max_x := ((cell_num + 1) * req.BlockWidth) + (cell_num * BORDER_WIDTH)
+			maxX := ((cellNum + 1) * req.BlockWidth) + (cellNum * borderWidth)
 
-			min_y := (row_num * req.BlockHeight) + (row_num * BORDER_WIDTH)
+			minY := (rowNum * req.BlockHeight) + (rowNum * borderWidth)
 
-			max_y := ((row_num + 1) * req.BlockHeight) + (row_num * BORDER_WIDTH)
+			maxY := ((rowNum + 1) * req.BlockHeight) + (rowNum * borderWidth)
 
-			for y := max_y; y > min_y; y-- {
-				for x := min_x; x < max_x; x++ {
-					img.Set(x, y, rgba_colour)
+			for y := maxY; y > minY; y-- {
+				for x := minX; x < maxX; x++ {
+					img.Set(x, y, RGBAColour)
 				}
-				img.Set(max_x+1, y, border_colour_rgba)
+				img.Set(maxX+1, y, borderColourRGBA)
 			}
 		}
 	}
 
+	// Fill any pixels with an alpha value of 0 (indicating not set) with the border colour
 	for x := img.Bounds().Min.X; x <= img.Bounds().Max.X; x++ {
 		for y := img.Bounds().Min.Y; y <= img.Bounds().Max.Y; y++ {
 			if _, _, _, a := img.At(x, y).RGBA(); a == 0 {
-				img.Set(x, y, border_colour_rgba)
+				img.Set(x, y, borderColourRGBA)
 			}
 		}
 	}

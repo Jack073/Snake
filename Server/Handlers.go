@@ -9,52 +9,49 @@ import (
 )
 
 type startReq struct {
-	Height, Width int
+	Height int `json:"height"`
+	Width  int `json:"width"`
 }
 
 type endReq struct {
-	Token string
+	Token string `json:"token"`
 }
 
 type startOut struct {
-	Token   string
-	Message string
+	Token   string `json:"token"`
+	Message string `json:"message"`
 }
 
 type moveOutput struct {
-	Board  [][]string
-	Alive  bool
-	Won    bool
-	Length int
-	Eaten  int
+	Board  [][]string `json:"board"`
+	Alive  bool       `json:"alive"`
+	Won    bool       `json:"won"`
+	Length int        `json:"length"`
+	Eaten  int        `json:"eaten"`
 }
 
-type ImageReq struct {
-	BoardPositions   [][]string
-	HeadColour       [3]int
-	BodyColour       [3]int
-	AppleColour      [3]int
-	BackGroundColour [3]int
-	BlockHeight      int
-	BlockWidth       int
-	BorderColour     [3]int
-	width            int
-	// Unexported field can't be filled by json.Unmarshal
+type imageReq struct {
+	BoardPositions   [][]string `json:"board_positions"`
+	HeadColour       [3]int     `json:"head_colour"`
+	BodyColour       [3]int     `json:"body_colour"`
+	AppleColour      [3]int     `json:"apple_colour"`
+	BackGroundColour [3]int     `json:"background_colour"`
+	BlockHeight      int        `json:"block_height"`
+	BlockWidth       int        `json:"block_width"`
+	BorderColour     [3]int     `json:"border_colour"`
+	Width            int        `json:"-"`
 }
 
 func checkErr(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	return true
+	return err != nil
 }
 
+// StartGame is the handler func for creating a game
 func StartGame(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Error When Reading Request Body"}`)
+		fmt.Fprint(w, `{"error": "Error When Reading Request Body"}`)
 		return
 	}
 
@@ -63,23 +60,21 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &res)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Invalid JSON Form"}`)
+		fmt.Fprint(w, `{"error": "Invalid JSON Form"}`)
 		return
 	}
 
 	if res.Height <= 0 {
-		fmt.Fprint(w, `{"Error": "Invalid Height parameter passed, must be a positive integer"}`)
+		fmt.Fprint(w, `{"error": "Invalid Height parameter passed, must be a positive integer"}`)
 		return
 	}
 
 	if res.Width <= 0 {
-		fmt.Fprint(w, `{"Error": "Invalid Width parameter passed, must be a positive integer"}`)
+		fmt.Fprint(w, `{"error": "Invalid Width parameter passed, must be a positive integer"}`)
 		return
 	}
 
-	token := Boards.Add(NewBoard(res.Width, res.Height))
-
-    fmt.Println("Created game with token:", token)
+	token := boards.Add(NewBoard(res.Width, res.Height))
 
 	out := startOut{
 		Token:   token,
@@ -89,7 +84,7 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 	outStr, err := json.Marshal(out)
 
 	if err != nil {
-		fmt.Fprint(w, `{"Error": "Error attempting to form output"}`)
+		fmt.Fprint(w, `{"error": "Error attempting to form output"}`)
 		return
 	}
 
@@ -97,11 +92,12 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// EndGame is the handler func for deleting a game
 func EndGame(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Error When Reading Request Body"}`)
+		fmt.Fprint(w, `{"error": "Error When Reading Request Body"}`)
 		return
 	}
 
@@ -110,91 +106,91 @@ func EndGame(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &res)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Invalid JSON Form"}`)
+		fmt.Fprint(w, `{"error": "Invalid JSON Form"}`)
 		return
 	}
 
 	if res.Token == "" {
-		fmt.Fprint(w, `{"Error": "No token provided"}`)
+		fmt.Fprint(w, `{"error": "No token provided"}`)
 		return
 	}
 
-	err = Boards.Delete(res.Token)
+	err = boards.Delete(res.Token)
 
 	if err != nil {
-		fmt.Fprint(w, `{"Error": "Invalid token provided"}`)
+		fmt.Fprint(w, `{"error": "Invalid token provided"}`)
 		return
 	}
 
-	fmt.Fprint(w, `{"Message": "Success"}`)
+	fmt.Fprint(w, `{"message": "Success"}`)
 
 }
 
+// GameMove is the handler func for changing the direction of the snake or moving
 func GameMove(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Error When Reading Request Body"}`)
+		fmt.Fprint(w, `{"error": "Error When Reading Request Body"}`)
 		return
 	}
 
 	res := struct {
-		Token     string
-		Direction string
+		Token     string `json:"token"`
+		Direction string `json:"direction"`
 	}{}
 
 	err = json.Unmarshal(body, &res)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Invalid JSON Form"}`)
+		fmt.Fprint(w, `{"error": "Invalid JSON Form"}`)
 		return
 	}
 
 	if res.Token == "" {
-		fmt.Fprint(w, `{"Error": "Missing Board Token"}`)
+		fmt.Fprint(w, `{"error": "Missing Board Token"}`)
 		return
 	}
 
 	if res.Direction == "" {
-		fmt.Fprint(w, `{"Error": "Missing direction"}`)
+		fmt.Fprint(w, `{"error": "Missing direction"}`)
 		return
 	}
 
-	board := Boards.Get(res.Token)
+	board := boards.Get(res.Token)
 
 	if board == nil {
-		fmt.Fprint(w, `{"Error": "Invalid Token"}`)
+		fmt.Fprint(w, `{"error": "Invalid Token"}`)
 		return
 	}
-
-    fmt.Println("Moved snake in game", res.Token, "direction", res.Direction)
 
 	direction := strings.ToLower(res.Direction)
 
 	var status int
 
-	if direction == "u" {
-		status = (*(*board).Snake).Move(0, -1)
-	} else if direction == "d" {
-		status = (*(*board).Snake).Move(0, 1)
-	} else if direction == "r" {
-		status = (*(*board).Snake).Move(1, 0)
-	} else if direction == "l" {
-		status = (*(*board).Snake).Move(-1, 0)
-	} else {
-		fmt.Fprint(w, `{"Error": "Invalid Direction"}`)
+	switch direction {
+	case "u":
+		status = board.Snake.Move(0, -1)
+	case "d":
+		status = board.Snake.Move(0, 1)
+	case "r":
+		status = board.Snake.Move(1, 0)
+	case "l":
+		status = board.Snake.Move(-1, 0)
+	default:
+		fmt.Fprint(w, `{"error": "Invalid Direction"}`)
 		return
 	}
 
-	boardMap := (*board).Map()
+	boardMap := board.Map()
 
 	if status == 0 {
 		out := moveOutput{
 			Board:  boardMap,
 			Alive:  true,
 			Won:    false,
-			Length: (*(*board).Snake).Length,
-			Eaten:  (*(*board).Snake).Eaten,
+			Length: board.Snake.Length,
+			Eaten:  board.Snake.Eaten,
 		}
 
 		outStr, _ := json.Marshal(out)
@@ -210,15 +206,15 @@ func GameMove(w http.ResponseWriter, r *http.Request) {
 			Board:  boardMap,
 			Alive:  false,
 			Won:    false,
-			Length: (*(*board).Snake).Length,
-			Eaten:  (*(*board).Snake).Eaten,
+			Length: board.Snake.Length,
+			Eaten:  board.Snake.Eaten,
 		}
 
 		outStr, _ := json.Marshal(out)
 
 		fmt.Fprint(w, string(outStr))
 
-		_ = Boards.Delete((*board).ID)
+		_ = boards.Delete(board.ID)
 		// Delete Game, ignoring any errors
 		return
 	}
@@ -228,15 +224,15 @@ func GameMove(w http.ResponseWriter, r *http.Request) {
 			Board:  boardMap,
 			Alive:  true,
 			Won:    true,
-			Length: (*(*board).Snake).Length,
-			Eaten:  (*(*board).Snake).Eaten,
+			Length: board.Snake.Length,
+			Eaten:  board.Snake.Eaten,
 		}
 
 		outStr, _ := json.Marshal(out)
 
 		fmt.Fprint(w, string(outStr))
 
-		_ = Boards.Delete((*board).ID)
+		_ = boards.Delete(board.ID)
 		// End game
 		return
 	}
@@ -247,15 +243,15 @@ func GameMove(w http.ResponseWriter, r *http.Request) {
 			Board:  boardMap,
 			Alive:  false,
 			Won:    false,
-			Length: (*(*board).Snake).Length,
-			Eaten:  (*(*board).Snake).Eaten,
+			Length: board.Snake.Length,
+			Eaten:  board.Snake.Eaten,
 		}
 
 		outStr, _ := json.Marshal(out)
 
 		fmt.Fprint(w, string(outStr))
 
-		_ = Boards.Delete((*board).ID)
+		_ = boards.Delete(board.ID)
 		// Crashed into wall
 		return
 	}
@@ -271,76 +267,82 @@ func checkColour(c [3]int) bool {
 	return true
 }
 
+// ImageCreate is the handler func for creating images to display
 func ImageCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 
 	if checkErr(err) {
-		fmt.Fprint(w, `{"Error": "Error When Reading Request Body"}`)
+		fmt.Fprint(w, `{"error": "Error When Reading Request Body"}`)
 		return
 	}
 
-	res := ImageReq{}
+	res := imageReq{}
 
 	err = json.Unmarshal(body, &res)
 
-	if len(res.BoardPositions) == 0 {
-		fmt.Fprint(w, `{"Error": "Missing BoardPositions parameter"}`)
+	if checkErr(err) {
+		fmt.Fprint(w, `{"error": "Invalid JSON Form"}`)
 		return
 	}
 
-	res.width = len(res.BoardPositions[0])
+	if len(res.BoardPositions) == 0 {
+		fmt.Fprint(w, `{"error": "Missing BoardPositions parameter"}`)
+		return
+	}
+
+	res.Width = len(res.BoardPositions[0])
 
 	for _, r := range res.BoardPositions {
-		if len(r) != res.width {
-			fmt.Fprint(w, `{"Error": "Inconsistent row width"}`)
+		if len(r) != res.Width {
+			fmt.Fprint(w, `{"error": "Inconsistent row width"}`)
 			return
 		}
 	}
 
 	if !checkColour(res.HeadColour) {
-		fmt.Fprint(w, `{"Error": "Missing HeadColour parameter, maximum value 255"}`)
+		fmt.Fprint(w, `{"error": "Missing HeadColour parameter, maximum value 255"}`)
 		return
 	}
 
 	if !checkColour(res.BodyColour) {
-		fmt.Fprint(w, `{"Error": "Missing BodyColour parameter, maximum value 255"}`)
+		fmt.Fprint(w, `{"error": "Missing BodyColour parameter, maximum value 255"}`)
 		return
 	}
 
 	if !checkColour(res.AppleColour) {
-		fmt.Fprint(w, `{"Error": "Missing AppleColour parameter, maximum value 255"}`)
+		fmt.Fprint(w, `{"error": "Missing AppleColour parameter, maximum value 255"}`)
 		return
 	}
 
 	if !checkColour(res.BorderColour) {
-		fmt.Fprint(w, `{"Error": "Missing BorderColour parameter, maximum value 255"}`)
+		fmt.Fprint(w, `{"error": "Missing BorderColour parameter, maximum value 255"}`)
 		return
 	}
 
 	if !checkColour(res.BackGroundColour) {
-		fmt.Fprint(w, `{"Error": "Missing BackGroundColour parameter, maximum value 255"}`)
+		fmt.Fprint(w, `{"error": "Missing BackGroundColour parameter, maximum value 255"}`)
 		return
 	}
 
 	if res.BlockHeight <= 0 {
-		fmt.Fprint(w, `{"Error": "BlockHeight must be greater than 0"}`)
+		fmt.Fprint(w, `{"error": "BlockHeight must be greater than 0"}`)
 		return
 	}
 
 	if res.BlockWidth <= 0 {
-		fmt.Fprint(w, `{"Error": "BlockWidth must be greater than 0"}`)
+		fmt.Fprint(w, `{"error": "BlockWidth must be greater than 0"}`)
 		return
 	}
 
 	img, err := GenImage(res)
 
 	if err != nil {
-		fmt.Fprint(w, `{"Error": "Error creating image"}`)
+		fmt.Fprint(w, `{"error": "Error creating image"}`)
 		return
 	}
 
 	success := struct {
-		Image string
+		Image string `json:"image"`
 	}{img}
 
 	out, _ := json.Marshal(success)

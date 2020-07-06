@@ -1,10 +1,11 @@
-from sys import exit
-from urllib.request import urlopen
-from urllib.error import URLError
-from json import loads, dumps, load
 import tkinter as tk
-from time import time, sleep
+
 from base64 import b64decode
+from json import dumps, load, loads
+from sys import exit
+from time import sleep, time
+from urllib.error import URLError
+from urllib.request import urlopen
 
 
 def check_closing(f):
@@ -140,8 +141,8 @@ class GUI(tk.Tk):
                     self.url + "/start",
                     data=dumps(
                         {
-                            "Width": self.WIDTH,
-                            "Height": self.HEIGHT
+                            "width": self.WIDTH,
+                            "height": self.HEIGHT
                         }
                     ).encode()
                     # Convert to bytes
@@ -150,10 +151,10 @@ class GUI(tk.Tk):
             )
             # Parse from JSON structure
 
-            if "Error" in res.keys():
-                exit(res["Error"])
+            if "error" in res.keys():
+                exit(res["error"])
 
-            self.token = res["Token"]
+            self.token = res["token"]
 
         except URLError:
             exit("Unable to connect to server")
@@ -166,21 +167,21 @@ class GUI(tk.Tk):
                     self.url + "/move",
                     data=dumps(
                         {
-                            "Token": self.token,
-                            "Direction": self.direction
+                            "token": self.token,
+                            "direction": self.direction
                         }
                     ).encode()
                 ).read().decode()
             )
 
-            if "Error" in res.keys():
-                print("[WARN] Error", res["Error"])
+            if "error" in res.keys():
+                print("[WARN] Error", res["error"])
                 return
 
-            if not res["Alive"]:
+            if not res["alive"]:
                 return self.emit_dead(res)
             
-            if res["Won"]:
+            if res["won"]:
                 return self.emit_won(res)
 
             self.update_board(res)
@@ -219,40 +220,40 @@ class GUI(tk.Tk):
             # Runs once every half a second
 
         self.mainloop()
-        # Keep window responsive
+        # Keep window responsive after game over
 
     @check_closing
     def init_grid_img(self):
         # Creates an image using the server /image method
         default_board = {
-            "BoardPositions": [
+            "board_positions": [
                 [
                     " " for _ in range(self.WIDTH)
                 ] for _ in range(self.HEIGHT)
             ],
-            "HeadColour": self.conf.get("HeadColour", [
+            "head_colour": self.conf.get("HeadColour", [
                 0,
                 0,
                 255,
             ]),
-            "BodyColour": self.conf.get("BodyColour", [
+            "body_colour": self.conf.get("BodyColour", [
                 50,
                 130,
                 170,
             ]),
-            "AppleColour": self.conf.get("AppleColour", [
+            "apple_colour": self.conf.get("AppleColour", [
                 255,
                 0,
                 0,
             ]),
-            "BackgroundColour": self.conf.get("BackgroundColour", [
+            "background_colour": self.conf.get("BackgroundColour", [
                 60,
                 170,
                 50
             ]),
-            "BlockHeight": self.conf.get("BlockHeight", 50),
-            "BlockWidth": self.conf.get("BlockWidth", 50),
-            "BorderColour": self.conf.get("BorderColour", [
+            "block_height": self.conf.get("BlockHeight", 50),
+            "block_width": self.conf.get("BlockWidth", 50),
+            "border_colour": self.conf.get("BorderColour", [
                 255,
                 255,
                 255
@@ -268,10 +269,10 @@ class GUI(tk.Tk):
             )
             # Makes request, returned in JSON format and parsed
 
-            if "Error" in res.keys():
-                exit(res.keys().get("Error"))
+            if "error" in res.keys():
+                exit(res.get("error"))
 
-            self.image = tk.PhotoImage(data=b64decode(res["Image"]))
+            self.image = tk.PhotoImage(data=b64decode(res["image"]))
 
             return self.image
 
@@ -280,36 +281,36 @@ class GUI(tk.Tk):
 
     @check_closing
     def update_board(self, board):
-        self.tk_str_var_eaten.set("Eaten: " + str(board["Eaten"]))
-        self.tk_str_var_length.set("Length: " + str(board["Length"]))
+        self.tk_str_var_eaten.set("Eaten: " + str(board["eaten"]))
+        self.tk_str_var_length.set("Length: " + str(board["length"]))
 
         try:
             # Attempt to create an image for the updated board
             board = {
-                "BoardPositions": board["Board"],
-                "HeadColour": self.conf.get("HeadColour", [
+                "board_positions": board["board"],
+                "head_colour": self.conf.get("HeadColour", [
                     0,
                     0,
                     255,
                 ]),
-                "BodyColour": self.conf.get("BodyColour", [
+                "body_colour": self.conf.get("BodyColour", [
                     50,
                     130,
                     170,
                 ]),
-                "AppleColour": self.conf.get("AppleColour", [
+                "apple_colour": self.conf.get("AppleColour", [
                     255,
                     0,
                     0,
                 ]),
-                "BackgroundColour": self.conf.get("BackgroundColour", [
+                "background_colour": self.conf.get("BackgroundColour", [
                     60,
                     170,
                     50
                 ]),
-                "BlockHeight": self.conf.get("BlockHeight", 50),
-                "BlockWidth": self.conf.get("BlockWidth", 50),
-                "BorderColour": self.conf.get("BorderColour", [
+                "block_height": self.conf.get("BlockHeight", 50),
+                "block_width": self.conf.get("BlockWidth", 50),
+                "border_colour": self.conf.get("BorderColour", [
                     255,
                     255,
                     255
@@ -324,16 +325,16 @@ class GUI(tk.Tk):
                 ).read().decode()
             )
 
-            if "Error" in res.keys():
+            if "error" in res.keys():
                 # Error creating image, use previous
-                print("[WARN]", res.get("Error"))
+                print("[WARN]", res.get("error"))
                 return
 
         except URLError:
             print("[WARN] Unable to connect to server to create image")
             return
 
-        self.image = tk.PhotoImage(data=b64decode(res["Image"]))
+        self.image = tk.PhotoImage(data=b64decode(res["image"]))
         self.label.configure(image=self.image)
         
     @check_closing
@@ -342,7 +343,7 @@ class GUI(tk.Tk):
         # Stop any further requests to server
         w = tk.Label(
             self,
-            text="You Won! Final Length " + str(res["Length"]),
+            text="You Won! Final Length " + str(res["length"]),
             anchor="n",
             height=20
         )
@@ -354,7 +355,7 @@ class GUI(tk.Tk):
         # Stop any further requests to server
         d = tk.Label(
             self,
-            text="You Died! Final Length " + str(res["Length"]),
+            text="You Died! Final Length " + str(res["length"]),
             anchor="n",
             height=20
         )
