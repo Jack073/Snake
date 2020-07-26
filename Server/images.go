@@ -6,7 +6,6 @@ import (
 	"image"
 	colour "image/color"
 	"image/png"
-	_ "image/png"
 	"strings"
 )
 
